@@ -1,1 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>騎乘儀表板</title>
+<style>
+:root{
+  --bg:#14171c;
+  --panel:#1d2127;
+  --panel-2:#252a32;
+  --line:#323844;
+  --text:#e8eaed;
+  --sub:#8b929e;
+  --accent:#ff7a26;
+  --accent-dim:#5a3a1f;
+  --good:#3ddc97;
+  --warn:#ffb020;
+  --bad:#ff5d5d;
+  --mono:'Courier New',Consolas,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;}
+body{padding-bottom:84px;}
 
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:linear-gradient(180deg,#1a1d22,#14171c);
+  border-bottom:1px solid var(--line);
+  padding:14px 16px 10px;
+}
+.topbar h1{margin:0;font-size:18px;letter-spacing:1px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.topbar h1 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);}
+.topbar h1 .dot.live{background:var(--good);box-shadow:0 0 8px var(--good);animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.topbar .sub{font-size:11px;color:var(--sub);margin-top:2px;font-family:var(--mono);letter-spacing:.5px;}
+
+main{max-width:560px;margin:0 auto;padding:14px;}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.panel-head .label{font-size:12px;color:var(--accent);font-family:var(--mono);letter-spacing:2px;text-transform:uppercase;font-weight:700;}
+.panel-head .title{font-size:16px;font-weight:700;margin:2px 0 0;}
+
+/* 首頁：騎乘控制 */
+.ride-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+.rs-cell{background:var(--panel-2);border-radius:10px;padding:14px 8px;text-align:center;}
+.rs-cell .v{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--accent);}
+.rs-cell .l{font-size:11px;color:var(--sub);margin-top:4px;}
+.gps-status{font-size:12px;color:var(--sub);text-align:center;margin-bottom:12px;font-family:var(--mono);}
+.gps-status.ok{color:var(--good);}
+.gps-status.err{color:var(--bad);}
+.start-btn{
+  width:100%;padding:20px;border-radius:16px;border:none;
+  font-size:18px;font-weight:700;letter-spacing:1px;
+}
+.start-btn.go{background:var(--accent);color:#1a1207;}
+.start-btn.stop{background:var(--bad);color:#2a0c0c;}
+.next-reminder{
+  margin-top:12px;text-align:center;font-size:12px;color:var(--sub);font-family:var(--mono);
+}
+
+/* 表單元件 */
+input,textarea,select{
+  width:100%;background:var(--panel-2);border:1px solid var(--line);
+  color:var(--text);border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);}
+label{font-size:12px;color:var(--sub);display:block;margin-bottom:4px;}
+.field{margin-bottom:10px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+.btn{background:var(--accent);color:#1a1207;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;width:100%;}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text);font-weight:500;}
+.btn-small{background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;white-space:nowrap;}
+
+/* 天氣 */
+.weather-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.w-cell{background:var(--panel-2);border-radius:10px;padding:10px 8px;text-align:center;}
+.w-cell .v{font-family:var(--mono);font-size:22px;font-weight:700;}
+.w-cell .l{font-size:11px;color:var(--sub);margin-top:2px;}
+.wind-note{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:8px;}
+.wind-note.tail{background:rgba(61,220,151,.12);color:var(--good);border:1px solid rgba(61,220,151,.3);}
+.wind-note.head{background:rgba(255,93,93,.12);color:var(--bad);border:1px solid rgba(255,93,93,.3);}
+.wind-note.cross{background:rgba(255,176,32,.12);color:var(--warn);border:1px solid rgba(255,176,32,.3);}
+.loc-row{display:flex;gap:8px;margin-bottom:12px;}
+.loc-row input{flex:1;}
+
+/* 路線小卡 */
+.route-card{background:var(--panel-2);border-radius:10px;padding:12px;margin-bottom:8px;border-left:3px solid var(--accent);}
+.route-card .rname{font-weight:700;font-size:14px;}
+.route-card .rmeta{font-size:12px;color:var(--sub);font-family:var(--mono);margin-top:4px;}
+.route-card .ractions{display:flex;gap:8px;margin-top:8px;}
+.route-card .ractions a,.route-card .ractions button{
+  flex:1;text-align:center;text-decoration:none;font-size:12px;
+  background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:6px;
+}
+.track-svg{width:100%;height:90px;background:var(--bg);border-radius:8px;margin-top:8px;display:block;}
+.empty{color:var(--sub);font-size:13px;text-align:center;padding:18px 0;}
+
+/* 保養 */
+.maint-item{display:flex;align-items:center;gap:10px;background:var(--panel-2);border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+.maint-item .mi-icon{font-size:20px;width:28px;text-align:center;}
+.maint-item .mi-body{flex:1;}
+.maint-item .mi-name{font-size:13px;font-weight:700;}
+.maint-item .mi-bar{height:6px;background:var(--bg);border-radius:4px;margin-top:6px;overflow:hidden;}
+.maint-item .mi-bar-fill{height:100%;border-radius:4px;}
+.maint-item .mi-status{font-size:11px;color:var(--sub);margin-top:4px;font-family:var(--mono);}
+.odo-box{display:flex;align-items:center;gap:10px;background:var(--panel-2);border-radius:10px;padding:12px;margin-bottom:12px;}
+.odo-box .odo-v{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--accent);}
+.odo-box .odo-l{font-size:11px;color:var(--sub);}
+
+/* 補給提醒設定 */
+.interval-set{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px;}
+.interval-set button{width:34px;height:34px;border-radius:50%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);font-size:18px;}
+.interval-set .iv{font-family:var(--mono);font-size:15px;min-width:90px;text-align:center;}
+
+.toast{
+  position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(20px);
+  background:var(--accent);color:#1a1207;padding:12px 18px;border-radius:10px;
+  font-size:14px;font-weight:700;opacity:0;transition:.3s;z-index:200;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+.tabbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:60;
+  background:#181b20;border-top:1px solid var(--line);
+  display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+}
+.tabbar button{flex:1;background:none;border:none;color:var(--sub);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:10px;border-radius:10px;}
+.tabbar button .ic{font-size:19px;}
+.tabbar button.active{color:var(--accent);background:rgba(255,122,38,.1);}
+
+.section{display:none;}
+.section.active{display:block;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1><span class="dot" id="topDot"></span>騎乘儀表板</h1>
+  <div class="sub" id="topSub">RIDE CONTROL · 個人騎行工具</div>
+</div>
+
+<main>
+
+  <!-- ===== 首頁：騎乘控制 ===== -->
+  <section class="section active" id="sec-home">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="label">Live Ride</div>
+          <div class="title">開始騎乘</div>
+        </div>
+      </div>
+      <div class="ride-stats">
+        <div class="rs-cell"><div class="v" id="liveTime">00:00</div><div class="l">時間</div></div>
+        <div class="rs-cell"><div class="v" id="liveDist">0.00</div><div class="l">公里</div></div>
+        <div class="rs-cell"><div class="v" id="liveSpeed">0.0</div><div class="l">均速 km/h</div></div>
+      </div>
+      <div class="gps-status" id="gpsStatus">尚未啟動 GPS</div>
+      <button class="start-btn go" id="rideBtn" onclick="toggleRide()">▶ 開始騎乘</button>
+      <div class="next-reminder" id="nextReminder"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="label">Today</div>
+          <div class="title">本次騎乘將會</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--sub);line-height:1.8;">
+        • 即時記錄 GPS 軌跡，停止後存入「路線小卡」<br>
+        • 騎乘里程自動累加進「保養紀錄」總里程<br>
+        • 每 <span id="homeInterval">20</span> 分鐘震動提醒補給一次
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 天氣風況 ===== -->
+  <section class="section" id="sec-weather">
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="label">Weather</div><div class="title">天氣與風況</div></div>
+        <button class="btn-small" onclick="refreshWeather()">重新整理</button>
+      </div>
+      <div class="loc-row">
+        <input id="cityInput" placeholder="輸入城市,例如：台北" value="台北">
+        <button class="btn-small" onclick="refreshWeather()">查詢</button>
+      </div>
+      <div id="weatherBody"><div class="empty">輸入城市後按查詢,取得即時天氣與風況</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="label">Note</div><div class="title">騎乘建議</div></div></div>
+      <div id="rideAdvice" class="empty">尚無資料</div>
+    </div>
+  </section>
+
+  <!-- ===== 路線小卡 ===== -->
+  <section class="section" id="sec-route">
+    <div class="panel">
+      <div class="panel-head"><div><div class="label">Routes</div><div class="title">手動新增路線</div></div></div>
+      <div class="field"><label>路線名稱</label><input id="rName" placeholder="例如：河濱快騎 / 北宜公路"></div>
+      <div class="row2">
+        <div class="field"><label>距離 (km)</label><input id="rDist" type="number" inputmode="decimal" placeholder="0"></div>
+        <div class="field"><label>爬升 (m)</label><input id="rClimb" type="number" inputmode="decimal" placeholder="0"></div>
+      </div>
+      <div class="field"><label>備註</label><input id="rNote" placeholder="補水點、注意路段..."></div>
+      <div class="field"><label>Google Maps 連結(選填)</label><input id="rLink" placeholder="貼上路線連結"></div>
+      <button class="btn" onclick="addRoute()">＋ 新增路線</button>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="label">Saved</div><div class="title">路線與軌跡</div></div>
+      </div>
+      <div id="routeList"></div>
+    </div>
+  </section>
+
+  <!-- ===== 保養紀錄 ===== -->
+  <section class="section" id="sec-maint">
+    <div class="panel">
+      <div class="panel-head"><div><div class="label">Odometer</div><div class="title">累計里程</div></div></div>
+      <div class="odo-box"><div><div class="odo-v" id="odoVal">0</div><div class="odo-l">km 總里程（含自動騎乘記錄）</div></div></div>
+      <div class="row2">
+        <div class="field"><label>手動補登里程 (km)</label><input id="addKm" type="number" inputmode="decimal" placeholder="0"></div>
+        <div class="field" style="display:flex;align-items:flex-end;"><button class="btn" onclick="addOdo()">累加里程</button></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="label">Maintenance</div><div class="title">保養提醒</div></div></div>
+      <div id="maintList"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="label">Custom</div><div class="title">自訂保養項目</div></div></div>
+      <div class="field"><label>項目名稱</label><input id="mName" placeholder="例如：變速線更換"></div>
+      <div class="field"><label>保養週期 (km)</label><input id="mInterval" type="number" inputmode="numeric" placeholder="500"></div>
+      <button class="btn ghost" onclick="addMaintItem()">＋ 新增項目</button>
+    </div>
+  </section>
+
+  <!-- ===== 補給提醒設定 ===== -->
+  <section class="section" id="sec-nutrition">
+    <div class="panel">
+      <div class="panel-head"><div><div class="label">Settings</div><div class="title">補給提醒設定</div></div></div>
+      <div class="interval-set">
+        <button onclick="changeInterval(-5)">－</button>
+        <div class="iv">每 <span id="ivVal">20</span> 分鐘提醒</div>
+        <button onclick="changeInterval(5)">＋</button>
+      </div>
+      <div style="font-size:12px;color:var(--sub);text-align:center;margin-top:10px;">
+        此設定會套用到首頁「開始騎乘」的提醒頻率
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="label">Log</div><div class="title">提醒紀錄</div></div>
+        <button class="btn-small" onclick="clearReminderLog()">清空</button>
+      </div>
+      <div id="reminderLog" class="empty">騎乘開始後,每次提醒會記錄於此</div>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<div class="tabbar">
+  <button class="active" data-sec="home" onclick="switchTab('home')"><span class="ic">🚴</span>首頁</button>
+  <button data-sec="weather" onclick="switchTab('weather')"><span class="ic">🌤️</span>天氣風況</button>
+  <button data-sec="route" onclick="switchTab('route')"><span class="ic">🗺️</span>路線小卡</button>
+  <button data-sec="maint" onclick="switchTab('maint')"><span class="ic">🔧</span>保養紀錄</button>
+  <button data-sec="nutrition" onclick="switchTab('nutrition')"><span class="ic">⏱️</span>補給提醒</button>
+</div>
+
+<script>
+/* ===================== 共用 ===================== */
+function switchTab(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tabbar button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  document.querySelector('.tabbar button[data-sec="'+name+'"]').classList.add('active');
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  if(navigator.vibrate) navigator.vibrate(200);
+  setTimeout(()=>t.classList.remove('show'),2600);
+}
+function loadJSON(key,fallback){
+  try{ const v=localStorage.getItem(key); return v?JSON.parse(v):fallback; }
+  catch(e){ return fallback; }
+}
+function saveJSON(key,val){ localStorage.setItem(key,JSON.stringify(val)); }
+function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ===================== 補給提醒：共用設定 ===================== */
+let intervalMin=loadJSON('intervalMin',20);
+let reminderLog=loadJSON('reminderLog',[]);
+function renderIntervalSetting(){
+  document.getElementById('ivVal').textContent=intervalMin;
+  document.getElementById('homeInterval').textContent=intervalMin;
+}
+function changeInterval(delta){
+  intervalMin=Math.max(5,Math.min(60,intervalMin+delta));
+  saveJSON('intervalMin',intervalMin);
+  renderIntervalSetting();
+}
+function renderLog(){
+  const el=document.getElementById('reminderLog');
+  if(reminderLog.length===0){ el.innerHTML='<div class="empty">騎乘開始後,每次提醒會記錄於此</div>'; return; }
+  el.innerHTML=reminderLog.map(t=>'<div style="padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;font-family:var(--mono);">'+t+' · 補給提醒</div>').join('');
+}
+function clearReminderLog(){
+  reminderLog=[];
+  saveJSON('reminderLog',reminderLog);
+  renderLog();
+}
+
+/* ===================== 首頁：騎乘控制（GPS + 計時 + 補給）===================== */
+let riding=false;
+let watchId=null;
+let rideStart=0;
+let elapsedSec=0;
+let timerHandle=null;
+let totalDist=0;       // km
+let lastPos=null;
+let trackPoints=[];    // {lat,lng}
+let lastReminderTick=0;
+let gpsOK=false;
+
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function fmtTime(sec){
+  const h=Math.floor(sec/3600);
+  const m=String(Math.floor((sec%3600)/60)).padStart(2,'0');
+  const s=String(sec%60).padStart(2,'0');
+  return h>0 ? (h+':'+m+':'+s) : (m+':'+s);
+}
+function updateLiveStats(){
+  document.getElementById('liveTime').textContent=fmtTime(elapsedSec);
+  document.getElementById('liveDist').textContent=totalDist.toFixed(2);
+  const hrs=elapsedSec/3600;
+  const speed=hrs>0 ? (totalDist/hrs) : 0;
+  document.getElementById('liveSpeed').textContent=speed.toFixed(1);
+  const remain=intervalMin*60 - (elapsedSec - lastReminderTick);
+  document.getElementById('nextReminder').textContent = riding ? ('下次補給提醒：'+fmtTime(Math.max(0,remain))+' 後') : '';
+}
+function toggleRide(){
+  if(!riding) startRide(); else stopRide();
+}
+function startRide(){
+  riding=true;
+  elapsedSec=0;
+  totalDist=0;
+  lastPos=null;
+  trackPoints=[];
+  lastReminderTick=0;
+  document.getElementById('rideBtn').textContent='■ 停止騎乘';
+  document.getElementById('rideBtn').classList.remove('go');
+  document.getElementById('rideBtn').classList.add('stop');
+  document.getElementById('topDot').classList.add('live');
+  document.getElementById('topSub').textContent='騎乘中...';
+
+  if('geolocation' in navigator){
+    document.getElementById('gpsStatus').textContent='定位中...';
+    document.getElementById('gpsStatus').className='gps-status';
+    watchId=navigator.geolocation.watchPosition(onGPS, onGPSError, {
+      enableHighAccuracy:true, maximumAge:1000, timeout:8000
+    });
+  }else{
+    document.getElementById('gpsStatus').textContent='此裝置不支援 GPS，僅記錄時間，結束後可手動輸入里程';
+    document.getElementById('gpsStatus').className='gps-status err';
+  }
+
+  timerHandle=setInterval(()=>{
+    elapsedSec++;
+    if(elapsedSec - lastReminderTick >= intervalMin*60){
+      lastReminderTick=elapsedSec;
+      showToast('💧 補給提醒：該喝水/補給囉');
+      reminderLog.unshift(new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));
+      saveJSON('reminderLog',reminderLog);
+      renderLog();
+    }
+    updateLiveStats();
+  },1000);
+}
+function onGPS(pos){
+  gpsOK=true;
+  document.getElementById('gpsStatus').textContent='GPS 已連線，精準度約 '+Math.round(pos.coords.accuracy)+' 公尺';
+  document.getElementById('gpsStatus').className='gps-status ok';
+  const {latitude,longitude}=pos.coords;
+  if(lastPos){
+    const d=haversine(lastPos.lat,lastPos.lng,latitude,longitude);
+    if(d>0.0015 && d<0.5){ totalDist+=d; } // 過濾 GPS 漂移與不合理跳點
+  }
+  lastPos={lat:latitude,lng:longitude};
+  if(trackPoints.length===0 || haversine(trackPoints[trackPoints.length-1].lat,trackPoints[trackPoints.length-1].lng,latitude,longitude)>0.01){
+    trackPoints.push({lat:latitude,lng:longitude});
+  }
+  updateLiveStats();
+}
+function onGPSError(err){
+  document.getElementById('gpsStatus').textContent='GPS 無法取得（'+(err.message||'權限被拒')+'），結束後可手動補登里程';
+  document.getElementById('gpsStatus').className='gps-status err';
+}
+function stopRide(){
+  riding=false;
+  clearInterval(timerHandle);
+  if(watchId!==null && 'geolocation' in navigator){
+    navigator.geolocation.clearWatch(watchId);
+    watchId=null;
+  }
+  document.getElementById('rideBtn').textContent='▶ 開始騎乘';
+  document.getElementById('rideBtn').classList.remove('stop');
+  document.getElementById('rideBtn').classList.add('go');
+  document.getElementById('topDot').classList.remove('live');
+  document.getElementById('topSub').textContent='RIDE CONTROL · 個人騎行工具';
+  document.getElementById('nextReminder').textContent='';
+
+  const distFinal=Math.round(totalDist*100)/100;
+
+  if(distFinal>0){
+    odo=Math.round((odo+distFinal)*10)/10;
+    saveJSON('odo',odo);
+    renderOdo();
+    renderMaint();
+  }
+
+  if(distFinal>0 || elapsedSec>=60){
+    const now=new Date();
+    routes.unshift({
+      name:'騎乘記錄 '+now.toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'})+' '+now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),
+      dist:distFinal,
+      climb:'',
+      note:'時長 '+fmtTime(elapsedSec)+(gpsOK?'':'（GPS未連線，里程需手動修正）'),
+      link:trackPoints.length>1 ? buildGmapLink(trackPoints) : '',
+      track:trackPoints
+    });
+    saveJSON('routes',routes);
+    renderRoutes();
+    showToast('騎乘已結束，距離 '+distFinal+' km 已記錄');
+  }else{
+    showToast('騎乘已結束');
+  }
+
+  elapsedSec=0; totalDist=0; trackPoints=[]; lastPos=null; gpsOK=false;
+  updateLiveStats();
+}
+function buildGmapLink(points){
+  if(points.length<2) return '';
+  const sampled = points.length>23 ? points.filter((_,i)=>i%Math.ceil(points.length/23)===0) : points;
+  const waypoints = sampled.map(p=>p.lat.toFixed(5)+','+p.lng.toFixed(5)).join('/');
+  return 'https://www.google.com/maps/dir/'+waypoints;
+}
+
+/* ===================== 天氣風況 ===================== */
+async function refreshWeather(){
+  const city=document.getElementById('cityInput').value.trim()||'台北';
+  const body=document.getElementById('weatherBody');
+  const advice=document.getElementById('rideAdvice');
+  body.innerHTML='<div class="empty">查詢中...</div>';
+  try{
+    const geoRes=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(city)+'&count=1&language=zh');
+    const geo=await geoRes.json();
+    if(!geo.results || !geo.results.length){
+      body.innerHTML='<div class="empty">找不到此城市,請換個關鍵字</div>';
+      return;
+    }
+    const {latitude,longitude,name}=geo.results[0];
+    const wRes=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+latitude+'&longitude='+longitude+'&current=temperature_2m,precipitation_probability,wind_speed_10m,wind_direction_10m,weather_code&timezone=auto');
+    const w=await wRes.json();
+    const c=w.current;
+    const dirText=windDirText(c.wind_direction_10m);
+    body.innerHTML=
+      '<div class="weather-grid">'+
+        '<div class="w-cell"><div class="v">'+Math.round(c.temperature_2m)+'°</div><div class="l">氣溫 ('+name+')</div></div>'+
+        '<div class="w-cell"><div class="v">'+Math.round(c.precipitation_probability)+'%</div><div class="l">降雨機率</div></div>'+
+        '<div class="w-cell"><div class="v">'+Math.round(c.wind_speed_10m)+'</div><div class="l">風速 km/h</div></div>'+
+      '</div>'+
+      '<div class="wind-note '+windClass(c.wind_speed_10m)+'">風向 '+dirText+' · 騎乘時請留意側風影響</div>';
+    let adv=[];
+    if(c.precipitation_probability>=50) adv.push('降雨機率偏高,建議攜帶雨衣或改室內訓練');
+    if(c.wind_speed_10m>=25) adv.push('風速較大,山區、橋面請降低車速');
+    if(c.temperature_2m>=32) adv.push('高溫,務必增加補水頻率');
+    if(c.temperature_2m<=12) adv.push('氣溫偏低,注意手腳保暖、暖身後再加速');
+    if(adv.length===0) adv.push('天氣條件良好,適合正常騎乘');
+    advice.innerHTML=adv.map(a=>'<div style="padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;">• '+a+'</div>').join('');
+  }catch(e){
+    body.innerHTML='<div class="empty">查詢失敗,請檢查網路後重試</div>';
+  }
+}
+function windDirText(deg){
+  const dirs=['北','東北','東','東南','南','西南','西','西北'];
+  return dirs[Math.round(deg/45)%8];
+}
+function windClass(speed){
+  if(speed>=25) return 'head';
+  if(speed>=15) return 'cross';
+  return 'tail';
+}
+
+/* ===================== 路線小卡 ===================== */
+let routes=loadJSON('routes',[]);
+function trackSVG(track){
+  if(!track || track.length<2) return '';
+  const lats=track.map(p=>p.lat), lngs=track.map(p=>p.lng);
+  const minLat=Math.min(...lats), maxLat=Math.max(...lats);
+  const minLng=Math.min(...lngs), maxLng=Math.max(...lngs);
+  const w=300,h=90,pad=8;
+  const spanLat=(maxLat-minLat)||0.0001, spanLng=(maxLng-minLng)||0.0001;
+  const pts=track.map(p=>{
+    const x=pad+((p.lng-minLng)/spanLng)*(w-2*pad);
+    const y=h-pad-((p.lat-minLat)/spanLat)*(h-2*pad);
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+  return '<svg class="track-svg" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none">'+
+    '<polyline points="'+pts+'" fill="none" stroke="#ff7a26" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '</svg>';
+}
+function renderRoutes(){
+  const list=document.getElementById('routeList');
+  if(routes.length===0){ list.innerHTML='<div class="empty">尚未新增路線，騎乘結束後會自動出現在這裡</div>'; return; }
+  list.innerHTML=routes.map((r,i)=>
+    '<div class="route-card">'+
+      '<div class="rname">'+esc(r.name)+'</div>'+
+      '<div class="rmeta">'+(r.dist||0)+' km'+(r.climb?(' · 爬升 '+r.climb+' m'):'')+(r.note?(' · '+esc(r.note)):'')+'</div>'+
+      (r.track && r.track.length>1 ? trackSVG(r.track) : '')+
+      '<div class="ractions">'+
+        (r.link?('<a href="'+esc(r.link)+'" target="_blank">開啟軌跡地圖</a>'):'<a href="https://www.google.com/maps/search/'+encodeURIComponent(r.name)+'" target="_blank">搜尋地圖</a>')+
+        '<button onclick="deleteRoute('+i+')">刪除</button>'+
+      '</div>'+
+    '</div>'
+  ).join('');
+}
+function addRoute(){
+  const name=document.getElementById('rName').value.trim();
+  if(!name){ showToast('請輸入路線名稱'); return; }
+  routes.unshift({
+    name,
+    dist:document.getElementById('rDist').value,
+    climb:document.getElementById('rClimb').value,
+    note:document.getElementById('rNote').value.trim(),
+    link:document.getElementById('rLink').value.trim(),
+    track:[]
+  });
+  saveJSON('routes',routes);
+  ['rName','rDist','rClimb','rNote','rLink'].forEach(id=>document.getElementById(id).value='');
+  renderRoutes();
+  showToast('路線已新增');
+}
+function deleteRoute(i){
+  routes.splice(i,1);
+  saveJSON('routes',routes);
+  renderRoutes();
+}
+
+/* ===================== 保養紀錄 ===================== */
+let odo=loadJSON('odo',0);
+let maintItems=loadJSON('maintItems',[
+  {name:'鏈條上油',icon:'⛓️',interval:300,lastKm:0},
+  {name:'煞車皮檢查',icon:'🛑',interval:1000,lastKm:0},
+  {name:'輪胎檢查/更換',icon:'🛞',interval:2500,lastKm:0},
+  {name:'變速調整',icon:'⚙️',interval:600,lastKm:0}
+]);
+function renderOdo(){ document.getElementById('odoVal').textContent=odo; }
+function addOdo(){
+  const v=parseFloat(document.getElementById('addKm').value);
+  if(!v || v<=0){ showToast('請輸入有效里程'); return; }
+  odo=Math.round((odo+v)*10)/10;
+  saveJSON('odo',odo);
+  document.getElementById('addKm').value='';
+  renderOdo();
+  renderMaint();
+  showToast('已累加 '+v+' km');
+}
+function renderMaint(){
+  const list=document.getElementById('maintList');
+  list.innerHTML=maintItems.map((m,i)=>{
+    const since=odo-m.lastKm;
+    const pct=Math.min(100,Math.round(since/m.interval*100));
+    const remain=m.interval-since;
+    let color='var(--good)',status='剩餘 '+Math.max(0,Math.round(remain))+' km';
+    if(pct>=100){ color='var(--bad)'; status='已超過建議週期,請盡快保養'; }
+    else if(pct>=75){ color='var(--warn)'; status='即將到期 · 剩餘 '+Math.max(0,Math.round(remain))+' km'; }
+    return '<div class="maint-item">'+
+      '<div class="mi-icon">'+m.icon+'</div>'+
+      '<div class="mi-body">'+
+        '<div class="mi-name">'+esc(m.name)+'</div>'+
+        '<div class="mi-bar"><div class="mi-bar-fill" style="width:'+pct+'%;background:'+color+';"></div></div>'+
+        '<div class="mi-status" style="color:'+color+';">'+status+'</div>'+
+      '</div>'+
+      '<button class="btn-small" onclick="resetMaint('+i+')">已保養</button>'+
+    '</div>';
+  }).join('');
+}
+function resetMaint(i){
+  maintItems[i].lastKm=odo;
+  saveJSON('maintItems',maintItems);
+  renderMaint();
+  showToast(maintItems[i].name+' 已重設');
+}
+function addMaintItem(){
+  const name=document.getElementById('mName').value.trim();
+  const interval=parseFloat(document.getElementById('mInterval').value);
+  if(!name||!interval){ showToast('請填寫項目與週期'); return; }
+  maintItems.push({name,icon:'🔩',interval,lastKm:odo});
+  saveJSON('maintItems',maintItems);
+  document.getElementById('mName').value='';
+  document.getElementById('mInterval').value='';
+  renderMaint();
+  showToast('保養項目已新增');
+}
+
+/* ===================== 初始化 ===================== */
+renderRoutes();
+renderOdo();
+renderMaint();
+renderIntervalSetting();
+renderLog();
+updateLiveStats();
+refreshWeather();
+</script>
+</body>
+</html>
