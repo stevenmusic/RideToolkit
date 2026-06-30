@@ -98,8 +98,25 @@ label{font-size:12px;color:var(--sub);display:block;margin-bottom:4px;}
 .wind-note.tail{background:rgba(61,220,151,.12);color:var(--good);border:1px solid rgba(61,220,151,.3);}
 .wind-note.head{background:rgba(255,93,93,.12);color:var(--bad);border:1px solid rgba(255,93,93,.3);}
 .wind-note.cross{background:rgba(255,176,32,.12);color:var(--warn);border:1px solid rgba(255,176,32,.3);}
-.loc-row{display:flex;gap:8px;margin-bottom:12px;}
+.loc-row{display:flex;gap:8px;margin-bottom:4px;position:relative;}
 .loc-row input{flex:1;}
+.suggest-wrap{position:relative;flex:1;}
+.suggest-list{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:80;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
+  max-height:240px;overflow-y:auto;box-shadow:0 12px 28px rgba(0,0,0,.45);
+  display:none;
+}
+.suggest-list.show{display:block;}
+.suggest-item{
+  padding:10px 14px;font-size:14px;border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.suggest-item:last-child{border-bottom:none;}
+.suggest-item:active{background:var(--panel);}
+.suggest-item .si-region{font-size:11px;color:var(--sub);font-family:var(--mono);}
+.suggest-empty{padding:12px 14px;font-size:12px;color:var(--sub);}
+.weather-helper{font-size:11px;color:var(--sub);margin-bottom:10px;}
 
 /* 路線小卡 */
 .route-card{background:var(--panel-2);border-radius:10px;padding:12px;margin-bottom:8px;border-left:3px solid var(--accent);}
@@ -213,9 +230,13 @@ label{font-size:12px;color:var(--sub);display:block;margin-bottom:4px;}
         <button class="btn-small" onclick="refreshWeather()">重新整理</button>
       </div>
       <div class="loc-row">
-        <input id="cityInput" placeholder="輸入城市,例如：台北" value="台北">
+        <div class="suggest-wrap">
+          <input id="cityInput" placeholder="輸入地名,例如：板橋、華江橋、河濱公園" value="台北市" autocomplete="off" oninput="onCityInput()" onfocus="onCityInput()">
+          <div class="suggest-list" id="suggestList"></div>
+        </div>
         <button class="btn-small" onclick="refreshWeather()">查詢</button>
       </div>
+      <div class="weather-helper">輸入任一個字即可從北台灣常用地點挑選,點選後自動查詢</div>
       <div id="weatherBody"><div class="empty">輸入城市後按查詢,取得即時天氣與風況</div></div>
     </div>
     <div class="panel">
@@ -538,6 +559,97 @@ function buildEmbedSrc(dirLink){
 }
 
 /* ===================== 天氣風況 ===================== */
+const NORTH_TW_PLACES=[
+  {name:'台北市',region:'台北',lat:25.0330,lng:121.5654},
+  {name:'板橋',region:'新北',lat:25.0137,lng:121.4625},
+  {name:'三重',region:'新北',lat:25.0615,lng:121.4878},
+  {name:'中和',region:'新北',lat:24.9998,lng:121.4988},
+  {name:'永和',region:'新北',lat:25.0080,lng:121.5159},
+  {name:'新莊',region:'新北',lat:25.0359,lng:121.4318},
+  {name:'蘆洲',region:'新北',lat:25.0848,lng:121.4736},
+  {name:'土城',region:'新北',lat:24.9722,lng:121.4430},
+  {name:'樹林',region:'新北',lat:24.9904,lng:121.4203},
+  {name:'鶯歌',region:'新北',lat:24.9542,lng:121.3536},
+  {name:'三峽',region:'新北',lat:24.9344,lng:121.3686},
+  {name:'淡水',region:'新北',lat:25.1696,lng:121.4441},
+  {name:'八里',region:'新北',lat:25.1469,lng:121.3989},
+  {name:'林口',region:'新北',lat:25.0772,lng:121.3919},
+  {name:'五股',region:'新北',lat:25.0830,lng:121.4378},
+  {name:'泰山',region:'新北',lat:25.0590,lng:121.4307},
+  {name:'新店',region:'新北',lat:24.9678,lng:121.5417},
+  {name:'深坑',region:'新北',lat:25.0023,lng:121.6157},
+  {name:'石碇',region:'新北',lat:24.9900,lng:121.6582},
+  {name:'坪林',region:'新北',lat:24.9374,lng:121.7095},
+  {name:'烏來',region:'新北',lat:24.8649,lng:121.5503},
+  {name:'汐止',region:'新北',lat:25.0641,lng:121.6588},
+  {name:'瑞芳',region:'新北',lat:25.1090,lng:121.8068},
+  {name:'九份',region:'新北',lat:25.1097,lng:121.8447},
+  {name:'金山',region:'新北',lat:25.2218,lng:121.6368},
+  {name:'萬里',region:'新北',lat:25.1799,lng:121.6893},
+  {name:'三芝',region:'新北',lat:25.2589,lng:121.5005},
+  {name:'石門',region:'新北',lat:25.2906,lng:121.5683},
+  {name:'大溪',region:'桃園',lat:24.8807,lng:121.2851},
+  {name:'龍潭',region:'桃園',lat:24.8636,lng:121.2150},
+  {name:'楊梅',region:'桃園',lat:24.9170,lng:121.1454},
+  {name:'中壢',region:'桃園',lat:24.9536,lng:121.2250},
+  {name:'平鎮',region:'桃園',lat:24.9267,lng:121.2168},
+  {name:'八德',region:'桃園',lat:24.9333,lng:121.2858},
+  {name:'蘆竹',region:'桃園',lat:25.0244,lng:121.2934},
+  {name:'桃園市',region:'桃園',lat:24.9936,lng:121.3010},
+  {name:'大園',region:'桃園',lat:25.0608,lng:121.2034},
+  {name:'觀音',region:'桃園',lat:25.0288,lng:121.0769},
+  {name:'新屋',region:'桃園',lat:24.9737,lng:121.0686},
+  {name:'復興',region:'桃園',lat:24.8214,lng:121.3514},
+  {name:'基隆',region:'基隆',lat:25.1276,lng:121.7392},
+  {name:'北投',region:'台北',lat:25.1320,lng:121.5016},
+  {name:'士林',region:'台北',lat:25.0935,lng:121.5258},
+  {name:'內湖',region:'台北',lat:25.0833,lng:121.5872},
+  {name:'南港',region:'台北',lat:25.0554,lng:121.6066},
+  {name:'信義區',region:'台北',lat:25.0330,lng:121.5654},
+  {name:'大安',region:'台北',lat:25.0265,lng:121.5436},
+  {name:'中山',region:'台北',lat:25.0631,lng:121.5263},
+  {name:'萬華',region:'台北',lat:25.0307,lng:121.4998},
+  {name:'文山',region:'台北',lat:24.9886,lng:121.5701},
+  {name:'陽明山',region:'台北',lat:25.1558,lng:121.5566},
+  {name:'河濱公園',region:'台北·新北沿河',lat:25.0408,lng:121.4998},
+  {name:'美堤河濱公園',region:'台北 士林',lat:25.0875,lng:121.5267},
+  {name:'大佳河濱公園',region:'台北 中山',lat:25.0698,lng:121.5417},
+  {name:'華江橋',region:'台北/板橋 交界',lat:25.0367,lng:121.4778},
+  {name:'關渡',region:'台北 北投',lat:25.1217,lng:121.4669},
+  {name:'社子島',region:'台北 士林',lat:25.0956,lng:121.4953},
+  {name:'大稻埕碼頭',region:'台北 大同',lat:25.0553,lng:121.5089},
+  {name:'新店溪河濱',region:'新北 新店',lat:24.9700,lng:121.5350},
+  {name:'大溪河濱公園',region:'桃園 大溪',lat:24.8800,lng:121.2900},
+  {name:'青年公園',region:'台北 萬華',lat:25.0274,lng:121.4992}
+];
+let suggestSelectedCoord=null;
+function onCityInput(){
+  const q=document.getElementById('cityInput').value.trim();
+  const list=document.getElementById('suggestList');
+  if(!q){ list.classList.remove('show'); return; }
+  const matches=NORTH_TW_PLACES.filter(p=>p.name.includes(q));
+  if(matches.length===0){
+    list.innerHTML='<div class="suggest-empty">清單中沒有符合的地點,按查詢會改用一般地圖搜尋</div>';
+    list.classList.add('show');
+    return;
+  }
+  list.innerHTML=matches.slice(0,8).map(p=>
+    '<div class="suggest-item" onclick="selectCity(\''+p.name.replace(/'/g,"\\'")+'\')"><span>'+esc(p.name)+'</span><span class="si-region">'+esc(p.region)+'</span></div>'
+  ).join('');
+  list.classList.add('show');
+}
+function selectCity(name){
+  document.getElementById('cityInput').value=name;
+  document.getElementById('suggestList').classList.remove('show');
+  refreshWeather();
+}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.suggest-wrap')){
+    const list=document.getElementById('suggestList');
+    if(list) list.classList.remove('show');
+  }
+});
+
 const CITY_EN_MAP={
   '台北':'Taipei','臺北':'Taipei','台北市':'Taipei',
   '新北':'New Taipei','新北市':'New Taipei',
@@ -573,7 +685,11 @@ async function refreshWeather(){
   body.innerHTML='<div class="empty">查詢中...</div>';
   try{
     let result=null;
-    try{ result=await geocodeCity(cityRaw,'zh'); }catch(e){}
+    const localMatch=NORTH_TW_PLACES.find(p=>p.name===cityRaw);
+    if(localMatch){
+      result={latitude:localMatch.lat,longitude:localMatch.lng,name:localMatch.name};
+    }
+    if(!result){ try{ result=await geocodeCity(cityRaw,'zh'); }catch(e){} }
     if(!result && CITY_EN_MAP[cityRaw]){
       try{ result=await geocodeCity(CITY_EN_MAP[cityRaw],'en'); }catch(e){}
     }
